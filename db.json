@@ -1,0 +1,127 @@
+{
+  "people": [
+    "Alice"
+  ],
+  "tasks": [
+    {
+      "id": 1770289641785,
+      "title": "SyncTest",
+      "color": "#30a3dc",
+      "type": "even"
+    }
+  ],
+  "assignments": {
+    "2026-02-02": [
+      {
+        "taskId": 1770289641785,
+        "title": "SyncTest",
+        "color": "#30a3dc",
+        "personName": "Alice"
+      }
+    ],
+    "2026-02-04": [
+      {
+        "taskId": 1770289641785,
+        "title": "SyncTest",
+        "color": "#30a3dc",
+        "personName": "Alice"
+      }
+    ],
+    "2026-02-06": [
+      {
+        "taskId": 1770289641785,
+        "title": "SyncTest",
+        "color": "#30a3dc",
+        "personName": "Alice"
+      }
+    ],
+    "2026-02-08": [
+      {
+        "taskId": 1770289641785,
+        "title": "SyncTest",
+        "color": "#30a3dc",
+        "personName": "Alice"
+      }
+    ],
+    "2026-02-10": [
+      {
+        "taskId": 1770289641785,
+        "title": "SyncTest",
+        "color": "#30a3dc",
+        "personName": "Alice"
+      }
+    ],
+    "2026-02-12": [
+      {
+        "taskId": 1770289641785,
+        "title": "SyncTest",
+        "color": "#30a3dc",
+        "personName": "Alice"
+      }
+    ],
+    "2026-02-14": [
+      {
+        "taskId": 1770289641785,
+        "title": "SyncTest",
+        "color": "#30a3dc",
+        "personName": "Alice"
+      }
+    ],
+    "2026-02-16": [
+      {
+        "taskId": 1770289641785,
+        "title": "SyncTest",
+        "color": "#30a3dc",
+        "personName": "Alice"
+      }
+    ],
+    "2026-02-18": [
+      {
+        "taskId": 1770289641785,
+        "title": "SyncTest",
+        "color": "#30a3dc",
+        "personName": "Alice"
+      }
+    ],
+    "2026-02-20": [
+      {
+        "taskId": 1770289641785,
+        "title": "SyncTest",
+        "color": "#30a3dc",
+        "personName": "Alice"
+      }
+    ],
+    "2026-02-22": [
+      {
+        "taskId": 1770289641785,
+        "title": "SyncTest",
+        "color": "#30a3dc",
+        "personName": "Alice"
+      }
+    ],
+    "2026-02-24": [
+      {
+        "taskId": 1770289641785,
+        "title": "SyncTest",
+        "color": "#30a3dc",
+        "personName": "Alice"
+      }
+    ],
+    "2026-02-26": [
+      {
+        "taskId": 1770289641785,
+        "title": "SyncTest",
+        "color": "#30a3dc",
+        "personName": "Alice"
+      }
+    ],
+    "2026-02-28": [
+      {
+        "taskId": 1770289641785,
+        "title": "SyncTest",
+        "color": "#30a3dc",
+        "personName": "Alice"
+      }
+    ]
+  }
+}

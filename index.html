@@ -25,7 +25,10 @@
                 <span id="yearDisplay" style="font-weight: bold; margin-left: 10px;"></span>
                 <button id="nextMonth">&gt;</button>
             </div>
-            <button id="clearDataBtn" style="background-color: #ff4d4d; color: white; border: none; padding: 0.5rem; border-radius: 4px; cursor: pointer;">Limpar Dados</button>
+            <div class="control-actions">
+                <button onclick="clearMonthAssignments()" class="btn-secondary">Limpar Mês</button>
+                <button id="clearDataBtn" class="btn-danger">Limpar Tudo</button>
+            </div>
         </div>
 
         <div class="app-container">
@@ -54,8 +57,9 @@
                         <option value="random">Aleatório (Todos os dias)</option>
                     </select>
                 </div>
-                <button id="addTaskBtn" class="btn-primary">Criar e Distribuir</button>
+                <button id="addTaskBtn" class="btn-primary">Criar Tarefa</button>
                 <ul id="taskList" class="list-items"></ul>
+                <button onclick="distributeTasksForMonth()" class="btn-primary" style="margin-top: 20px; background-color: var(--secondary-color);">Distribuir Tarefas (Mês Atual)</button>
             </aside>
 
             <section class="calendar-container">
@@ -76,6 +80,24 @@
         </div>
     </main>
 
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Editar Tarefa</h2>
+            <div class="input-group">
+                <label>Nome da Tarefa</label>
+                <input type="text" id="modalTaskName">
+            </div>
+            <div class="input-group">
+                <label>Pessoa Responsável</label>
+                <select id="modalPersonSelect"></select>
+            </div>
+            <button id="saveEditBtn" class="btn-primary">Salvar Alterações</button>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
     <script src="assets/js/calendar.js"></script>
     <script>
         if ('serviceWorker' in navigator) {

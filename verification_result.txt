@@ -1,0 +1,52 @@
+Traceback (most recent call last):
+  File "/app/verification/verify_sync.py", line 80, in <module>
+    verify_sync_and_features(p)
+  File "/app/verification/verify_sync.py", line 32, in verify_sync_and_features
+    assert page1.get_by_text("SyncTest").is_visible()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.12/lib/python3.12/site-packages/playwright/sync_api/_generated.py", line 17303, in is_visible
+    self._sync(self._impl_obj.is_visible(timeout=timeout))
+  File "/home/jules/.pyenv/versions/3.12.12/lib/python3.12/site-packages/playwright/_impl/_sync_base.py", line 115, in _sync
+    return task.result()
+           ^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.12/lib/python3.12/site-packages/playwright/_impl/_locator.py", line 531, in is_visible
+    return await self._frame.is_visible(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.12/lib/python3.12/site-packages/playwright/_impl/_frame.py", line 408, in is_visible
+    return await self._channel.send(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.12/lib/python3.12/site-packages/playwright/_impl/_connection.py", line 69, in send
+    return await self._connection.wrap_api_call(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.12/lib/python3.12/site-packages/playwright/_impl/_connection.py", line 559, in wrap_api_call
+    raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+playwright._impl._errors.Error: Locator.is_visible: Error: strict mode violation: get_by_text("SyncTest") resolved to 10 elements:
+    1) <li>…</li> aka get_by_text("SyncTest✏️X").first
+    2) <li>…</li> aka get_by_text("SyncTest✏️X").nth(1)
+    3) <li>…</li> aka get_by_text("SyncTest✏️X").nth(2)
+    4) <li>…</li> aka get_by_text("SyncTest✏️X").nth(3)
+    5) <li>…</li> aka get_by_text("SyncTest✏️X").nth(4)
+    6) <span>SyncTest</span> aka get_by_text("SyncTest").nth(5)
+    7) <span>SyncTest</span> aka get_by_text("SyncTest", exact=True).nth(1)
+    8) <span>SyncTest</span> aka get_by_text("SyncTest", exact=True).nth(2)
+    9) <span>SyncTest</span> aka get_by_text("SyncTest", exact=True).nth(3)
+    10) <span>SyncTest</span> aka get_by_text("SyncTest", exact=True).nth(4)
+
+Call log:
+    - checking visibility of get_by_text("SyncTest")
+
+Sync: Person added syncs successfully
+Test Failed: Locator.is_visible: Error: strict mode violation: get_by_text("SyncTest") resolved to 10 elements:
+    1) <li>…</li> aka get_by_text("SyncTest✏️X").first
+    2) <li>…</li> aka get_by_text("SyncTest✏️X").nth(1)
+    3) <li>…</li> aka get_by_text("SyncTest✏️X").nth(2)
+    4) <li>…</li> aka get_by_text("SyncTest✏️X").nth(3)
+    5) <li>…</li> aka get_by_text("SyncTest✏️X").nth(4)
+    6) <span>SyncTest</span> aka get_by_text("SyncTest").nth(5)
+    7) <span>SyncTest</span> aka get_by_text("SyncTest", exact=True).nth(1)
+    8) <span>SyncTest</span> aka get_by_text("SyncTest", exact=True).nth(2)
+    9) <span>SyncTest</span> aka get_by_text("SyncTest", exact=True).nth(3)
+    10) <span>SyncTest</span> aka get_by_text("SyncTest", exact=True).nth(4)
+
+Call log:
+    - checking visibility of get_by_text("SyncTest")
