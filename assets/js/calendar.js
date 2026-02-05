@@ -39,14 +39,29 @@ document.addEventListener('DOMContentLoaded', () => {
     const taskList = document.getElementById('taskList');
     const legendContainer = document.getElementById('legendContainer');
     const clearDataBtn = document.getElementById('clearDataBtn');
+    const themeToggle = document.getElementById('themeToggle');
 
     // Initialize
     init();
 
     function init() {
+        initTheme();
         populateMonthSelect();
         render();
         setupEventListeners();
+    }
+
+    function initTheme() {
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        updateThemeIcon(savedTheme);
+    }
+
+    function updateThemeIcon(theme) {
+        if (themeToggle) {
+            themeToggle.textContent = theme === 'light' ? '🌙' : '☀️';
+            themeToggle.setAttribute('aria-label', theme === 'light' ? 'Alternar para Escuro' : 'Alternar para Claro');
+        }
     }
 
     function setupEventListeners() {
@@ -68,6 +83,16 @@ document.addEventListener('DOMContentLoaded', () => {
         addPersonBtn.addEventListener('click', addPerson);
         addTaskBtn.addEventListener('click', addTask);
         clearDataBtn.addEventListener('click', clearData);
+
+        if (themeToggle) {
+            themeToggle.addEventListener('click', () => {
+                const currentTheme = document.documentElement.getAttribute('data-theme');
+                const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+                document.documentElement.setAttribute('data-theme', newTheme);
+                localStorage.setItem('theme', newTheme);
+                updateThemeIcon(newTheme);
+            });
+        }
     }
 
     function populateMonthSelect() {
@@ -145,83 +170,57 @@ document.addEventListener('DOMContentLoaded', () => {
         const month = currentDate.getMonth();
         const daysInMonth = new Date(year, month + 1, 0).getDate();
         
-        // Helper to check if a person works on prev/next day
-        const hasConflict = (person, dateKey) => {
-            const checkDate = new Date(dateKey + 'T00:00:00'); // Safe date parsing
-            
-            // Previous day
-            const prevDate = new Date(year, month, checkDate.getDate() - 1);
-            const prevKey = formatDate(prevDate);
-            if (assignments[prevKey]) {
-                if (assignments[prevKey].some(a => a.personName === person)) return true;
-            }
-
-            // Next day
-            const nextDate = new Date(year, month, checkDate.getDate() + 1);
-            const nextKey = formatDate(nextDate);
-            if (assignments[nextKey]) {
-                if (assignments[nextKey].some(a => a.personName === person)) return true;
-            }
-
-            return false;
-        };
-
         // Determine target days
         let targetDays = [];
         for (let d = 1; d <= daysInMonth; d++) {
             if (task.type === 'even' && d % 2 === 0) targetDays.push(d);
             if (task.type === 'odd' && d % 2 !== 0) targetDays.push(d);
-            if (task.type === 'random') targetDays.push(d); // We will pick from these later
+            if (task.type === 'random') targetDays.push(d);
         }
 
-        if (task.type === 'random') {
-            // For random, we want to distribute tasks across the month for available people
-            // Let's try to assign this task roughly (days / people) times? 
-            // OR the requirement implies "distribute randomly among people".
-            // Let's assume we want to fill SOME days with this task.
-            // Let's try to assign it to ~50% of days randomly or let user specify?
-            // The prompt says "distribuir aletoriamente as tarefas entre essas pessoas". 
-            // It sounds like we should assign the task to ALL applicable days (even/odd is explicit),
-            // but for 'random', maybe it means "Assign to random days"?
-            // Re-reading: "opção de caso tenha mais de uma tarefa ou pessoa, que possa distribuir aletoriamente as tarefas entre essas pessoas"
-            // It seems "Random" applies to WHO gets the task, not necessarily WHICH days.
-            // BUT "sem repetir as tarefas para as mesmas pessoas em dias consecutivos".
-            
-            // Let's interpret "Random" as: Assign this task to Every Day (or Random Days?), but pick a random person.
-            // Given "Even/Odd" are date selectors, "Random" might be interpreted as "Assign to random days".
-            // BUT the prompt links random distribution to PEOPLE.
-            
-            // Let's assume for "Even/Odd" we assign to ALL even/odd days.
-            // For "Random", let's assign to ALL days (or a subset?) but randomize the person.
-            // Let's stick to: Assign to ALL days of the month by default if not even/odd, but shuffle people.
-            
-            // Wait, "distribute randomly... among people".
-            // I will implement: Assign to ALL days of the month, but pick a person randomly for each day, respecting the constraint.
-            
-            targetDays = [];
-            for (let d = 1; d <= daysInMonth; d++) targetDays.push(d);
-        }
+        let lastPersonForThisTask = null;
 
         targetDays.forEach(day => {
             const date = new Date(year, month, day);
             const dateKey = formatDate(date);
 
-            // Filter available people (constraint: no consecutive days)
-            let availablePeople = people.filter(p => !hasConflict(p, dateKey));
+            // Filter available people
+            // Constraint 1: Person must NOT have an assignment on this dateKey (One task per person per day)
+            // Constraint 2: Person must NOT be lastPersonForThisTask (Rotation/Consecutive Task Rule)
             
-            // If everyone has a conflict, relax the constraint or just pick random?
-            // Let's just pick random from all if strict constraint fails, to ensure assignment.
-            if (availablePeople.length === 0) availablePeople = people;
+            let availablePeople = people.filter(p => {
+                // Check if p is busy on dateKey
+                const isBusy = assignments[dateKey] && assignments[dateKey].some(a => a.personName === p);
+                if (isBusy) return false;
 
-            const randomPerson = availablePeople[Math.floor(Math.random() * availablePeople.length)];
+                // Check rotation (avoid same person doing same task consecutively)
+                if (p === lastPersonForThisTask) return false;
 
-            if (!assignments[dateKey]) assignments[dateKey] = [];
-            assignments[dateKey].push({
-                taskId: task.id,
-                title: task.title,
-                color: task.color,
-                personName: randomPerson
+                return true;
             });
+
+            // Fallback: If no one is available due to rotation constraint, try allowing rotation but check busy
+            if (availablePeople.length === 0) {
+                 availablePeople = people.filter(p => {
+                    const isBusy = assignments[dateKey] && assignments[dateKey].some(a => a.personName === p);
+                    return !isBusy;
+                });
+            }
+
+            // Assign if someone is available
+            if (availablePeople.length > 0) {
+                const randomPerson = availablePeople[Math.floor(Math.random() * availablePeople.length)];
+
+                if (!assignments[dateKey]) assignments[dateKey] = [];
+                assignments[dateKey].push({
+                    taskId: task.id,
+                    title: task.title,
+                    color: task.color,
+                    personName: randomPerson
+                });
+
+                lastPersonForThisTask = randomPerson;
+            }
         });
     }
 
@@ -294,16 +293,12 @@ document.addEventListener('DOMContentLoaded', () => {
             li.textContent = p;
             const btn = document.createElement('button');
             btn.textContent = 'X';
-            btn.style.marginLeft = '10px';
-            btn.style.color = 'red';
-            btn.style.border = 'none';
-            btn.style.background = 'transparent';
-            btn.style.cursor = 'pointer';
             btn.onclick = () => {
                 people = people.filter(person => person !== p);
-                render(); // Re-render to potential cleanup assignments? 
-                // Note: keeping assignments even if person deleted for history, or should we remove?
-                // For simplicity, we keep history.
+                // Also remove assignments for this person to keep data clean?
+                // Or keep history. Let's keep history but maybe warn.
+                // For this request, I'll just remove person from list.
+                render();
             };
             li.appendChild(btn);
             peopleList.appendChild(li);
@@ -313,7 +308,26 @@ document.addEventListener('DOMContentLoaded', () => {
         taskList.innerHTML = '';
         tasks.forEach(t => {
             const li = document.createElement('li');
-            li.innerHTML = `<span style="width: 10px; height: 10px; display: inline-block; background: ${t.color}; margin-right: 5px;"></span> ${t.title} [${t.type}]`;
+            li.innerHTML = `<span style="width: 10px; height: 10px; display: inline-block; background: ${t.color}; margin-right: 5px; border-radius: 2px;"></span> ${t.title} [${t.type === 'random' ? 'Todos os dias' : (t.type === 'even' ? 'Pares' : 'Ímpares')}]`;
+
+            const btn = document.createElement('button');
+            btn.textContent = 'X';
+            btn.style.marginLeft = 'auto'; // push to right
+            btn.style.color = 'red';
+            btn.style.border = 'none';
+            btn.style.background = 'transparent';
+            btn.style.cursor = 'pointer';
+            btn.onclick = () => {
+                tasks = tasks.filter(task => task.id !== t.id);
+                // Remove assignments for this task
+                for (let key in assignments) {
+                    assignments[key] = assignments[key].filter(a => a.taskId !== t.id);
+                    if (assignments[key].length === 0) delete assignments[key];
+                }
+                render();
+            };
+            li.appendChild(btn);
+
             taskList.appendChild(li);
         });
     }
@@ -324,7 +338,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Holiday Legend
         const holidayItem = document.createElement('div');
         holidayItem.className = 'legend-item';
-        holidayItem.innerHTML = `<div class="color-box" style="background-color: var(--holiday-color)"></div> <span>Feriado</span>`;
+        holidayItem.innerHTML = `<div class="color-box" style="background-color: var(--holiday-bg)"></div> <span style="color: var(--holiday-text); font-weight: bold;">Feriado</span>`;
         legendContainer.appendChild(holidayItem);
 
         // Tasks Legend
@@ -350,8 +364,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function clearData() {
-        if(confirm('Tem certeza que deseja limpar todos os dados?')) {
+        if(confirm('Tem certeza que deseja limpar todos os dados (pessoas, tarefas e calendário)?')) {
+            // Keep theme
+            const theme = localStorage.getItem('theme');
             localStorage.clear();
+            if(theme) localStorage.setItem('theme', theme);
             location.reload();
         }
     }
