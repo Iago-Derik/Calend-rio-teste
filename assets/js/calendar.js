@@ -56,18 +56,25 @@ document.addEventListener('DOMContentLoaded', () => {
     init();
 
     function init() {
-        initTheme();
-        populateMonthSelect();
-        setupEventListeners();
-        setupModalListeners();
+        try {
+            initTheme();
+            populateMonthSelect();
+            setupEventListeners();
+            setupModalListeners();
 
-        if (isFirebaseInitialized && db) {
-            setupFirebaseListeners();
-        } else {
+            // Check global variables safely
+            if (window.isFirebaseInitialized && window.db) {
+                setupFirebaseListeners();
+            } else {
+                console.log("Inicializando em modo LocalStorage (Firebase não ativo).");
+                loadFromLocalStorage();
+                render();
+            }
+        } catch (e) {
+            console.error("Erro crítico na inicialização:", e);
+            // Fallback de emergência para garantir que algo apareça
             loadFromLocalStorage();
             render();
-            // Show alert about configuration
-            // setTimeout(() => alert("A sincronização online não está ativa. Configure o Firebase no arquivo 'assets/js/firebase-config.js' para ativar."), 1000);
         }
     }
 
@@ -75,7 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function setupFirebaseListeners() {
         // Listen to 'calendar_data' collection, document 'main_v1'
-        db.collection("calendar_data").doc("main_v1")
+        window.db.collection("calendar_data").doc("main_v1")
             .onSnapshot((doc) => {
                 if (doc.exists) {
                     const data = doc.data();
@@ -89,6 +96,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }, (error) => {
                 console.error("Erro ao receber dados do Firebase:", error);
+                // Fallback se a conexão cair ou falhar
+                loadFromLocalStorage();
+                render();
             });
     }
 
@@ -105,8 +115,8 @@ document.addEventListener('DOMContentLoaded', () => {
             assignments
         };
 
-        if (isFirebaseInitialized && db) {
-            db.collection("calendar_data").doc("main_v1").set(dataToSave)
+        if (window.isFirebaseInitialized && window.db) {
+            window.db.collection("calendar_data").doc("main_v1").set(dataToSave)
                 .catch((error) => {
                     console.error("Erro ao salvar no Firebase:", error);
                     alert("Erro ao salvar online. Verifique o console.");

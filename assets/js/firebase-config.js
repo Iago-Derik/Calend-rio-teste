@@ -1,11 +1,11 @@
 // CONFIGURAÇÃO DO FIREBASE
-// Para ativar a sincronização:
-// 1. Acesse https://console.firebase.google.com/
-// 2. Crie um novo projeto
-// 3. Vá em "Criação" > "Firestore Database" e crie um banco de dados (modo teste para começar)
-// 4. Vá nas configurações do projeto (ícone de engrenagem) > Geral > Seus aplicativos > Adicionar app Web (</>)
-// 5. Copie as chaves do `const firebaseConfig` e substitua abaixo.
 
+// Inicializa variáveis globais com valores seguros para evitar falhas no calendar.js
+// se este arquivo falhar ou não for carregado corretamente.
+window.isFirebaseInitialized = false;
+window.db = null;
+
+// Configuração padrão (placeholders)
 const firebaseConfig = {
     apiKey: "SUA_API_KEY_AQUI",
     authDomain: "SEU_PROJETO.firebaseapp.com",
@@ -15,19 +15,24 @@ const firebaseConfig = {
     appId: "ID_DO_APP"
 };
 
-// Inicializa Firebase apenas se a configuração tiver sido alterada do padrão
-let db = null;
-let isFirebaseInitialized = false;
-
 try {
-    if (firebaseConfig.apiKey !== "SUA_API_KEY_AQUI" && typeof firebase !== 'undefined') {
-        firebase.initializeApp(firebaseConfig);
-        db = firebase.firestore();
-        isFirebaseInitialized = true;
-        console.log("Firebase conectado!");
+    // Verifica se o objeto global 'firebase' foi carregado pelos scripts no index.html
+    if (typeof firebase !== 'undefined') {
+        // Verifica se a configuração foi preenchida pelo usuário
+        if (firebaseConfig.apiKey !== "SUA_API_KEY_AQUI") {
+            firebase.initializeApp(firebaseConfig);
+            window.db = firebase.firestore();
+            window.isFirebaseInitialized = true;
+            console.log("Firebase conectado com sucesso!");
+        } else {
+            console.warn("Configuração do Firebase pendente. O aplicativo funcionará em modo offline (LocalStorage).");
+        }
     } else {
-        console.warn("Firebase não configurado. Usando LocalStorage.");
+        console.warn("SDK do Firebase não foi carregado. O aplicativo funcionará em modo offline (LocalStorage).");
     }
 } catch (error) {
     console.error("Erro ao inicializar Firebase:", error);
+    // Garante que flags estão falsas em caso de erro
+    window.isFirebaseInitialized = false;
+    window.db = null;
 }
