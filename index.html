@@ -5,11 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gerenciador de Tarefas e Calendário</title>
     <link rel="stylesheet" href="assets/css/calendar.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#5b2c6f">
 </head>
 <body>
     <header>
         <h1>Gerenciador de Tarefas</h1>
-        <a href="index.html">Voltar para Home</a>
+        <div class="header-controls">
+            <button id="themeToggle" class="theme-toggle" aria-label="Alternar Tema">🌙</button>
+            <a href="index.html">Voltar para Home</a>
+        </div>
     </header>
 
     <main>
@@ -72,5 +77,18 @@
     </main>
 
     <script src="assets/js/calendar.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(registration => {
+                        console.log('SW registered:', registration);
+                    })
+                    .catch(error => {
+                        console.log('SW registration failed:', error);
+                    });
+            });
+        }
+    </script>
 </body>
 </html>
