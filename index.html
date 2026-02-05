@@ -55,6 +55,7 @@
                     </select>
                 </div>
                 <button id="addTaskBtn" class="btn-primary">Criar e Distribuir</button>
+                <button id="redistributeBtn" class="btn-action" style="margin-top: 0.5rem; background-color: #e67e22;">Distribuir Tarefas Existentes (Mês Atual)</button>
                 <ul id="taskList" class="list-items"></ul>
             </aside>
 
@@ -76,6 +77,32 @@
         </div>
     </main>
 
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Editar Atribuição</h2>
+            <input type="hidden" id="editDateKey">
+            <input type="hidden" id="editIndex">
+
+            <div class="input-group">
+                <label>Nome da Tarefa</label>
+                <input type="text" id="editTaskTitle">
+            </div>
+            <div class="input-group">
+                <label>Pessoa</label>
+                <input type="text" id="editPersonName">
+            </div>
+             <div class="input-group">
+                <label>Cor</label>
+                <input type="color" id="editColor">
+            </div>
+
+            <button id="saveEditBtn" class="btn-primary">Salvar Alterações</button>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
     <script src="assets/js/calendar.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
