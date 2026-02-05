@@ -1,10 +1,12 @@
 document.addEventListener('DOMContentLoaded', () => {
+    const socket = io();
+
     // State
     let currentDate = new Date();
-    let people = JSON.parse(localStorage.getItem('calendar_people')) || [];
-    let tasks = JSON.parse(localStorage.getItem('calendar_tasks')) || [];
+    let people = [];
+    let tasks = [];
     // assignments: { 'YYYY-MM-DD': [ { taskId, personName, color, title } ] }
-    let assignments = JSON.parse(localStorage.getItem('calendar_assignments')) || {};
+    let assignments = {};
 
     const months = [
         "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -36,10 +38,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const taskColor = document.getElementById('taskColor');
     const taskType = document.getElementById('taskType');
     const addTaskBtn = document.getElementById('addTaskBtn');
+    const redistributeBtn = document.getElementById('redistributeBtn');
     const taskList = document.getElementById('taskList');
     const legendContainer = document.getElementById('legendContainer');
     const clearDataBtn = document.getElementById('clearDataBtn');
     const themeToggle = document.getElementById('themeToggle');
+
+    // Modal Elements
+    const editModal = document.getElementById('editModal');
+    const closeModalSpan = document.querySelector('.close-modal');
+    const saveEditBtn = document.getElementById('saveEditBtn');
+    const editDateKeyInput = document.getElementById('editDateKey');
+    const editIndexInput = document.getElementById('editIndex');
+    const editTaskTitleInput = document.getElementById('editTaskTitle');
+    const editPersonNameInput = document.getElementById('editPersonName');
+    const editColorInput = document.getElementById('editColor');
 
     // Initialize
     init();
@@ -47,8 +60,32 @@ document.addEventListener('DOMContentLoaded', () => {
     function init() {
         initTheme();
         populateMonthSelect();
-        render();
         setupEventListeners();
+        setupModalListeners();
+        // Render will be called when initialData arrives
+    }
+
+    // Socket Listeners
+    socket.on('initialData', (data) => {
+        people = data.people || [];
+        tasks = data.tasks || [];
+        assignments = data.assignments || {};
+        render();
+    });
+
+    socket.on('dataUpdated', (data) => {
+        people = data.people || [];
+        tasks = data.tasks || [];
+        assignments = data.assignments || {};
+        render();
+    });
+
+    function saveState() {
+        socket.emit('updateData', {
+            people,
+            tasks,
+            assignments
+        });
     }
 
     function initTheme() {
@@ -82,6 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         addPersonBtn.addEventListener('click', addPerson);
         addTaskBtn.addEventListener('click', addTask);
+        redistributeBtn.addEventListener('click', redistributeTasks);
         clearDataBtn.addEventListener('click', clearData);
 
         if (themeToggle) {
@@ -93,6 +131,37 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateThemeIcon(newTheme);
             });
         }
+    }
+
+    function setupModalListeners() {
+        closeModalSpan.onclick = () => {
+            editModal.style.display = "none";
+        };
+
+        window.onclick = (event) => {
+            if (event.target == editModal) {
+                editModal.style.display = "none";
+            }
+        };
+
+        saveEditBtn.onclick = () => {
+            const dateKey = editDateKeyInput.value;
+            const index = parseInt(editIndexInput.value);
+            const newTitle = editTaskTitleInput.value.trim();
+            const newPerson = editPersonNameInput.value.trim();
+            const newColor = editColorInput.value;
+
+            if (newTitle && newPerson && assignments[dateKey] && assignments[dateKey][index]) {
+                assignments[dateKey][index].title = newTitle;
+                assignments[dateKey][index].personName = newPerson;
+                assignments[dateKey][index].color = newColor;
+                saveState();
+                render();
+                editModal.style.display = "none";
+            } else {
+                alert("Por favor, preencha os campos corretamente.");
+            }
+        };
     }
 
     function populateMonthSelect() {
@@ -110,19 +179,10 @@ document.addEventListener('DOMContentLoaded', () => {
         monthSelect.value = currentDate.getMonth();
         yearDisplay.textContent = currentDate.getFullYear();
 
-        // Save State
-        saveState();
-
         // Render Components
         renderCalendar();
         renderSidebarLists();
         renderLegend();
-    }
-
-    function saveState() {
-        localStorage.setItem('calendar_people', JSON.stringify(people));
-        localStorage.setItem('calendar_tasks', JSON.stringify(tasks));
-        localStorage.setItem('calendar_assignments', JSON.stringify(assignments));
     }
 
     function addPerson() {
@@ -130,6 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (name && !people.includes(name)) {
             people.push(name);
             personInput.value = '';
+            saveState(); // Trigger sync
             render();
         } else if (people.includes(name)) {
             alert('Essa pessoa já foi adicionada.');
@@ -162,7 +223,40 @@ document.addEventListener('DOMContentLoaded', () => {
         distributeTask(newTask);
         
         taskInput.value = '';
+        saveState(); // Trigger sync
         render();
+    }
+
+    function redistributeTasks() {
+        if (tasks.length === 0) {
+            alert("Não há tarefas criadas.");
+            return;
+        }
+        if (people.length === 0) {
+            alert("Não há pessoas adicionadas.");
+            return;
+        }
+
+        if (confirm("Isso irá redistribuir todas as tarefas para este mês. As atribuições automáticas existentes neste mês serão substituídas. Continuar?")) {
+            clearAssignmentsForMonth();
+            tasks.forEach(task => distributeTask(task));
+            saveState();
+            render();
+        }
+    }
+
+    function clearAssignmentsForMonth() {
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+        for (let d = 1; d <= daysInMonth; d++) {
+            const date = new Date(year, month, d);
+            const dateKey = formatDate(date);
+            if (assignments[dateKey]) {
+                delete assignments[dateKey];
+            }
+        }
     }
 
     function distributeTask(task) {
@@ -271,12 +365,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Tasks
             if (assignments[dateKey]) {
-                assignments[dateKey].forEach(assign => {
+                assignments[dateKey].forEach((assign, index) => {
                     const taskEl = document.createElement('div');
                     taskEl.className = 'task-item';
                     taskEl.style.backgroundColor = assign.color;
                     taskEl.textContent = `${assign.title} (${assign.personName})`;
                     taskEl.title = `${assign.title} - ${assign.personName}`;
+
+                    // Click to Edit
+                    taskEl.onclick = (e) => {
+                        e.stopPropagation();
+                        openEditModal(dateKey, index, assign);
+                    };
+
                     el.appendChild(taskEl);
                 });
             }
@@ -285,22 +386,124 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function openEditModal(dateKey, index, assign) {
+        editDateKeyInput.value = dateKey;
+        editIndexInput.value = index;
+        editTaskTitleInput.value = assign.title;
+        editPersonNameInput.value = assign.personName;
+        editColorInput.value = assign.color;
+
+        editModal.style.display = "block";
+    }
+
+    function removeTaskFromMonth(taskId) {
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+        let changed = false;
+        for (let d = 1; d <= daysInMonth; d++) {
+            const date = new Date(year, month, d);
+            const dateKey = formatDate(date);
+            if (assignments[dateKey]) {
+                const initialLen = assignments[dateKey].length;
+                assignments[dateKey] = assignments[dateKey].filter(a => a.taskId !== taskId);
+                if (assignments[dateKey].length !== initialLen) changed = true;
+                if (assignments[dateKey].length === 0) delete assignments[dateKey];
+            }
+        }
+
+        if (changed) {
+            saveState();
+            render();
+        }
+    }
+
+    function deleteTaskGlobal(taskId) {
+        tasks = tasks.filter(task => task.id !== taskId);
+        // Remove assignments for this task everywhere
+        for (let key in assignments) {
+            assignments[key] = assignments[key].filter(a => a.taskId !== taskId);
+            if (assignments[key].length === 0) delete assignments[key];
+        }
+        saveState();
+        render();
+    }
+
+    function editPersonName(oldName, newName) {
+        // Update list
+        const idx = people.indexOf(oldName);
+        if (idx !== -1) people[idx] = newName;
+
+        // Update assignments
+        for (let key in assignments) {
+            assignments[key].forEach(a => {
+                if (a.personName === oldName) {
+                    a.personName = newName;
+                }
+            });
+        }
+        saveState();
+        render();
+    }
+
+    function editTaskTitle(taskId, newTitle) {
+        const task = tasks.find(t => t.id === taskId);
+        if (task) task.title = newTitle;
+
+        // Update assignments title
+        for (let key in assignments) {
+            assignments[key].forEach(a => {
+                if (a.taskId === taskId) {
+                    a.title = newTitle;
+                }
+            });
+        }
+        saveState();
+        render();
+    }
+
     function renderSidebarLists() {
         // People
         peopleList.innerHTML = '';
         people.forEach(p => {
             const li = document.createElement('li');
             li.textContent = p;
+
+             const actionsDiv = document.createElement('div');
+            actionsDiv.style.marginLeft = 'auto';
+            actionsDiv.style.display = 'flex';
+            actionsDiv.style.gap = '5px';
+
+            // Edit Person
+            const editBtn = document.createElement('button');
+            editBtn.textContent = '✏️';
+            editBtn.title = "Editar Nome";
+            editBtn.style.border = 'none';
+            editBtn.style.background = 'transparent';
+            editBtn.style.cursor = 'pointer';
+            editBtn.onclick = () => {
+                const newName = prompt('Novo nome para ' + p, p);
+                if (newName && newName.trim() !== '' && newName !== p) {
+                    editPersonName(p, newName.trim());
+                }
+            };
+
             const btn = document.createElement('button');
-            btn.textContent = 'X';
+            btn.textContent = '❌';
+            btn.style.color = 'red';
+            btn.style.border = 'none';
+            btn.style.background = 'transparent';
+            btn.style.cursor = 'pointer';
             btn.onclick = () => {
                 people = people.filter(person => person !== p);
-                // Also remove assignments for this person to keep data clean?
-                // Or keep history. Let's keep history but maybe warn.
-                // For this request, I'll just remove person from list.
+                saveState();
                 render();
             };
-            li.appendChild(btn);
+
+            actionsDiv.appendChild(editBtn);
+            actionsDiv.appendChild(btn);
+            li.appendChild(actionsDiv);
             peopleList.appendChild(li);
         });
 
@@ -310,23 +513,56 @@ document.addEventListener('DOMContentLoaded', () => {
             const li = document.createElement('li');
             li.innerHTML = `<span style="width: 10px; height: 10px; display: inline-block; background: ${t.color}; margin-right: 5px; border-radius: 2px;"></span> ${t.title} [${t.type === 'random' ? 'Todos os dias' : (t.type === 'even' ? 'Pares' : 'Ímpares')}]`;
 
-            const btn = document.createElement('button');
-            btn.textContent = 'X';
-            btn.style.marginLeft = 'auto'; // push to right
-            btn.style.color = 'red';
-            btn.style.border = 'none';
-            btn.style.background = 'transparent';
-            btn.style.cursor = 'pointer';
-            btn.onclick = () => {
-                tasks = tasks.filter(task => task.id !== t.id);
-                // Remove assignments for this task
-                for (let key in assignments) {
-                    assignments[key] = assignments[key].filter(a => a.taskId !== t.id);
-                    if (assignments[key].length === 0) delete assignments[key];
+            const actionsDiv = document.createElement('div');
+            actionsDiv.style.marginLeft = 'auto';
+            actionsDiv.style.display = 'flex';
+            actionsDiv.style.gap = '5px';
+
+            // Edit Task
+            const editBtn = document.createElement('button');
+            editBtn.textContent = '✏️';
+            editBtn.title = "Editar Tarefa";
+            editBtn.style.border = 'none';
+            editBtn.style.background = 'transparent';
+            editBtn.style.cursor = 'pointer';
+            editBtn.onclick = () => {
+                const newTitle = prompt('Novo título para ' + t.title, t.title);
+                if (newTitle && newTitle.trim() !== '' && newTitle !== t.title) {
+                    editTaskTitle(t.id, newTitle.trim());
                 }
-                render();
             };
-            li.appendChild(btn);
+
+            // Remove from Month (X)
+            const removeMonthBtn = document.createElement('button');
+            removeMonthBtn.textContent = '❌';
+            removeMonthBtn.title = "Remover atribuições deste mês";
+            removeMonthBtn.style.color = 'red';
+            removeMonthBtn.style.border = 'none';
+            removeMonthBtn.style.background = 'transparent';
+            removeMonthBtn.style.cursor = 'pointer';
+            removeMonthBtn.onclick = () => {
+                 if(confirm(`Remover tarefas "${t.title}" deste mês?`)) {
+                    removeTaskFromMonth(t.id);
+                 }
+            };
+
+            // Delete Global (Trash)
+            const deleteGlobalBtn = document.createElement('button');
+            deleteGlobalBtn.textContent = '🗑️';
+            deleteGlobalBtn.title = "Apagar tarefa permanentemente";
+            deleteGlobalBtn.style.border = 'none';
+            deleteGlobalBtn.style.background = 'transparent';
+            deleteGlobalBtn.style.cursor = 'pointer';
+            deleteGlobalBtn.onclick = () => {
+                 if(confirm(`Apagar tarefa "${t.title}" permanentemente?`)) {
+                     deleteTaskGlobal(t.id);
+                 }
+            };
+
+            actionsDiv.appendChild(editBtn);
+            actionsDiv.appendChild(removeMonthBtn);
+            actionsDiv.appendChild(deleteGlobalBtn);
+            li.appendChild(actionsDiv);
 
             taskList.appendChild(li);
         });
@@ -366,10 +602,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function clearData() {
         if(confirm('Tem certeza que deseja limpar todos os dados (pessoas, tarefas e calendário)?')) {
             // Keep theme
-            const theme = localStorage.getItem('theme');
-            localStorage.clear();
-            if(theme) localStorage.setItem('theme', theme);
-            location.reload();
+            people = [];
+            tasks = [];
+            assignments = {};
+            saveState(); // Sync clear to server
         }
     }
 });
