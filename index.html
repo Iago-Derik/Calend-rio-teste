@@ -102,7 +102,12 @@
         </div>
     </div>
 
-    <script src="/socket.io/socket.io.js"></script>
+    <!-- Firebase SDKs (Compat versions for simplicity in vanilla JS) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+    <!-- Config and App -->
+    <script src="assets/js/firebase-config.js"></script>
     <script src="assets/js/calendar.js"></script>
     <script>
         if ('serviceWorker' in navigator) {

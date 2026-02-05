@@ -1,6 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const socket = io();
-
     // State
     let currentDate = new Date();
     let people = [];
@@ -62,31 +60,65 @@ document.addEventListener('DOMContentLoaded', () => {
         populateMonthSelect();
         setupEventListeners();
         setupModalListeners();
-        // Render will be called when initialData arrives
+
+        if (isFirebaseInitialized && db) {
+            setupFirebaseListeners();
+        } else {
+            loadFromLocalStorage();
+            render();
+            // Show alert about configuration
+            // setTimeout(() => alert("A sincronização online não está ativa. Configure o Firebase no arquivo 'assets/js/firebase-config.js' para ativar."), 1000);
+        }
     }
 
-    // Socket Listeners
-    socket.on('initialData', (data) => {
-        people = data.people || [];
-        tasks = data.tasks || [];
-        assignments = data.assignments || {};
-        render();
-    });
+    // --- DATA HANDLING (Firebase vs LocalStorage) ---
 
-    socket.on('dataUpdated', (data) => {
-        people = data.people || [];
-        tasks = data.tasks || [];
-        assignments = data.assignments || {};
-        render();
-    });
+    function setupFirebaseListeners() {
+        // Listen to 'calendar_data' collection, document 'main_v1'
+        db.collection("calendar_data").doc("main_v1")
+            .onSnapshot((doc) => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    people = data.people || [];
+                    tasks = data.tasks || [];
+                    assignments = data.assignments || {};
+                    render();
+                } else {
+                    // Document doesn't exist yet, initialize it
+                    saveState();
+                }
+            }, (error) => {
+                console.error("Erro ao receber dados do Firebase:", error);
+            });
+    }
+
+    function loadFromLocalStorage() {
+        people = JSON.parse(localStorage.getItem('calendar_people')) || [];
+        tasks = JSON.parse(localStorage.getItem('calendar_tasks')) || [];
+        assignments = JSON.parse(localStorage.getItem('calendar_assignments')) || {};
+    }
 
     function saveState() {
-        socket.emit('updateData', {
+        const dataToSave = {
             people,
             tasks,
             assignments
-        });
+        };
+
+        if (isFirebaseInitialized && db) {
+            db.collection("calendar_data").doc("main_v1").set(dataToSave)
+                .catch((error) => {
+                    console.error("Erro ao salvar no Firebase:", error);
+                    alert("Erro ao salvar online. Verifique o console.");
+                });
+        } else {
+            localStorage.setItem('calendar_people', JSON.stringify(people));
+            localStorage.setItem('calendar_tasks', JSON.stringify(tasks));
+            localStorage.setItem('calendar_assignments', JSON.stringify(assignments));
+        }
     }
+
+    // --- UI LOGIC ---
 
     function initTheme() {
         const savedTheme = localStorage.getItem('theme') || 'light';
@@ -134,6 +166,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function setupModalListeners() {
+        if (!closeModalSpan) return;
+
         closeModalSpan.onclick = () => {
             editModal.style.display = "none";
         };
@@ -190,7 +224,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (name && !people.includes(name)) {
             people.push(name);
             personInput.value = '';
-            saveState(); // Trigger sync
+            saveState();
             render();
         } else if (people.includes(name)) {
             alert('Essa pessoa já foi adicionada.');
@@ -223,7 +257,7 @@ document.addEventListener('DOMContentLoaded', () => {
         distributeTask(newTask);
         
         taskInput.value = '';
-        saveState(); // Trigger sync
+        saveState();
         render();
     }
 
