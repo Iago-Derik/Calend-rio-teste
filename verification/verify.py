@@ -1,42 +1,52 @@
 from playwright.sync_api import sync_playwright
+import time
 
-def verify_calendar(page):
-    page.goto("http://localhost:8000")
+def run(playwright):
+    browser = playwright.chromium.launch(headless=True)
+    page = browser.new_page()
+
+    # Go to localhost
+    try:
+        page.goto("http://localhost:8080/index.html")
+    except Exception as e:
+        print(f"Error loading page: {e}")
+        browser.close()
+        return
+
+    # Wait a bit for JS to load
+    time.sleep(1)
 
     # Check title
-    print(page.title())
+    print(f"Title: {page.title()}")
 
-    # Add Person A
-    page.fill("#personInput", "Alice")
-    page.click("#addPersonBtn")
+    # Check if modal opens automatically (expected since no keys)
+    modal = page.locator("#connectionModal")
 
-    # Add Person B
-    page.fill("#personInput", "Bob")
-    page.click("#addPersonBtn")
+    if modal.is_visible():
+        print("Modal opened automatically (Correct behavior)")
+    else:
+        print("Modal NOT visible automatically. Clicking button...")
+        # Check for the Cloud Config button
+        cloud_btn = page.locator("#configCloudBtn")
+        cloud_btn.click()
+        # Wait for modal to be visible
+        modal.wait_for(state="visible", timeout=2000)
 
-    # Add Task (Even Days)
-    page.fill("#taskInput", "Cleaning")
-    page.select_option("#taskType", "even")
-    page.click("#addTaskBtn")
+    if modal.is_visible():
+        print("Modal is visible now")
 
-    # Wait for calendar to populate (implicit via render)
-    page.wait_for_timeout(500)
+        # Check inputs
+        url_input = page.locator("#supabaseUrl")
+        key_input = page.locator("#supabaseKey")
+        if url_input.is_visible() and key_input.is_visible():
+             print("Inputs are visible")
+    else:
+        print("Modal failed to open")
 
-    # Toggle Theme to Dark
-    page.click("#themeToggle")
-    page.wait_for_timeout(500) # Wait for transition
+    # Take screenshot of the modal
+    page.screenshot(path="verification/screenshot.png")
 
-    # Screenshot
-    page.screenshot(path="verification/calendar_dark.png")
-    print("Screenshot taken")
+    browser.close()
 
-if __name__ == "__main__":
-    with sync_playwright() as p:
-        browser = p.chromium.launch()
-        page = browser.new_page()
-        try:
-            verify_calendar(page)
-        except Exception as e:
-            print(f"Error: {e}")
-        finally:
-            browser.close()
+with sync_playwright() as playwright:
+    run(playwright)

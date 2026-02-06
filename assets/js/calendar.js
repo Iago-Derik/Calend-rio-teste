@@ -1,6 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const socket = io();
-
     // State
     let currentDate = new Date();
     let people = [];
@@ -43,6 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const legendContainer = document.getElementById('legendContainer');
     const clearDataBtn = document.getElementById('clearDataBtn');
     const themeToggle = document.getElementById('themeToggle');
+    const configCloudBtn = document.getElementById('configCloudBtn');
 
     // Modal Elements
     const editModal = document.getElementById('editModal');
@@ -54,6 +53,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const editPersonNameInput = document.getElementById('editPersonName');
     const editColorInput = document.getElementById('editColor');
 
+    // Connection Modal Elements
+    const connectionModal = document.getElementById('connectionModal');
+    const closeConnectionModal = document.getElementById('closeConnectionModal');
+    const saveConnectionBtn = document.getElementById('saveConnectionBtn');
+    const supabaseUrlInput = document.getElementById('supabaseUrl');
+    const supabaseKeyInput = document.getElementById('supabaseKey');
+
+    // Supabase Client
+    let supabase = null;
+    let isConnected = false;
+
     // Initialize
     init();
 
@@ -62,30 +72,149 @@ document.addEventListener('DOMContentLoaded', () => {
         populateMonthSelect();
         setupEventListeners();
         setupModalListeners();
-        // Render will be called when initialData arrives
+        setupConnectionLogic();
+
+        // Try to connect
+        checkConnection();
     }
 
-    // Socket Listeners
-    socket.on('initialData', (data) => {
-        people = data.people || [];
-        tasks = data.tasks || [];
-        assignments = data.assignments || {};
-        render();
-    });
+    function setupConnectionLogic() {
+        // Open Modal
+        configCloudBtn.addEventListener('click', () => {
+            const url = localStorage.getItem('supabaseUrl') || '';
+            const key = localStorage.getItem('supabaseKey') || '';
+            supabaseUrlInput.value = url;
+            supabaseKeyInput.value = key;
+            connectionModal.style.display = 'block';
+        });
 
-    socket.on('dataUpdated', (data) => {
-        people = data.people || [];
-        tasks = data.tasks || [];
-        assignments = data.assignments || {};
-        render();
-    });
+        // Close Modal
+        closeConnectionModal.addEventListener('click', () => {
+            connectionModal.style.display = 'none';
+        });
 
-    function saveState() {
-        socket.emit('updateData', {
+        window.addEventListener('click', (event) => {
+            if (event.target == connectionModal) {
+                connectionModal.style.display = 'none';
+            }
+        });
+
+        // Save Credentials
+        saveConnectionBtn.addEventListener('click', () => {
+            const url = supabaseUrlInput.value.trim();
+            const key = supabaseKeyInput.value.trim();
+
+            if (url && key) {
+                localStorage.setItem('supabaseUrl', url);
+                localStorage.setItem('supabaseKey', key);
+                connectionModal.style.display = 'none';
+                checkConnection();
+            } else {
+                alert('Por favor, preencha a URL e a Chave.');
+            }
+        });
+    }
+
+    async function checkConnection() {
+        const url = localStorage.getItem('supabaseUrl');
+        const key = localStorage.getItem('supabaseKey');
+
+        if (!url || !key) {
+            console.log("No credentials found.");
+            // Open modal automatically if not configured, or maybe just let them browse offline (but features won't work)
+            // Let's open it to prompt them
+            connectionModal.style.display = 'block';
+            return;
+        }
+
+        try {
+            supabase = window.supabase.createClient(url, key);
+            isConnected = true;
+            console.log("Supabase client initialized.");
+
+            await loadData();
+            setupRealtime();
+
+        } catch (e) {
+            console.error("Error initializing Supabase:", e);
+            alert("Erro ao conectar com Supabase. Verifique suas credenciais.");
+            isConnected = false;
+        }
+    }
+
+    async function loadData() {
+        if (!isConnected) return;
+
+        try {
+            const { data, error } = await supabase
+                .from('calendar_data')
+                .select('data')
+                .eq('id', 1)
+                .single();
+
+            if (error) {
+                if (error.code === 'PGRST116') { // The result contains 0 rows
+                    console.log("No data found, starting fresh.");
+                    // No data yet, that's fine. We use default empty arrays.
+                    // We might want to save initial state
+                    saveState();
+                } else {
+                    console.error("Error loading data:", error);
+                }
+            } else if (data && data.data) {
+                const loadedData = data.data;
+                people = loadedData.people || [];
+                tasks = loadedData.tasks || [];
+                assignments = loadedData.assignments || {};
+                render();
+            }
+        } catch (e) {
+            console.error("Exception loading data:", e);
+        }
+    }
+
+    async function saveState() {
+        if (!isConnected) {
+            console.warn("Not connected to Supabase, changes not saved to cloud.");
+            return;
+        }
+
+        const stateData = {
             people,
             tasks,
             assignments
-        });
+        };
+
+        try {
+            const { error } = await supabase
+                .from('calendar_data')
+                .upsert({ id: 1, data: stateData });
+
+            if (error) {
+                console.error("Error saving state:", error);
+            } else {
+                // console.log("State saved successfully.");
+            }
+        } catch (e) {
+            console.error("Exception saving state:", e);
+        }
+    }
+
+    function setupRealtime() {
+        if (!isConnected) return;
+
+        supabase.channel('public:calendar_data')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'calendar_data', filter: 'id=eq.1' }, (payload) => {
+                // console.log('Change received!', payload);
+                if (payload.new && payload.new.data) {
+                     const newData = payload.new.data;
+                     people = newData.people || [];
+                     tasks = newData.tasks || [];
+                     assignments = newData.assignments || {};
+                     render();
+                }
+            })
+            .subscribe();
     }
 
     function initTheme() {

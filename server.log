@@ -1,0 +1,14 @@
+127.0.0.1 - - [06/Feb/2026 01:54:14] "GET /index.html HTTP/1.1" 200 -
+127.0.0.1 - - [06/Feb/2026 01:54:14] "GET /assets/css/calendar.css HTTP/1.1" 200 -
+127.0.0.1 - - [06/Feb/2026 01:54:14] "GET /assets/js/calendar.js HTTP/1.1" 200 -
+127.0.0.1 - - [06/Feb/2026 01:54:15] "GET /sw.js HTTP/1.1" 200 -
+127.0.0.1 - - [06/Feb/2026 01:54:15] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [06/Feb/2026 01:54:15] "GET /assets/icons/icon-512.svg HTTP/1.1" 200 -
+127.0.0.1 - - [06/Feb/2026 01:54:15] "GET /assets/icons/icon-192.svg HTTP/1.1" 200 -
+127.0.0.1 - - [06/Feb/2026 01:57:44] "GET /index.html HTTP/1.1" 200 -
+127.0.0.1 - - [06/Feb/2026 01:57:44] "GET /assets/js/calendar.js HTTP/1.1" 200 -
+127.0.0.1 - - [06/Feb/2026 01:57:44] "GET /assets/css/calendar.css HTTP/1.1" 200 -
+127.0.0.1 - - [06/Feb/2026 01:57:44] "GET /sw.js HTTP/1.1" 200 -
+127.0.0.1 - - [06/Feb/2026 01:57:44] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [06/Feb/2026 01:57:44] "GET /assets/icons/icon-192.svg HTTP/1.1" 200 -
+127.0.0.1 - - [06/Feb/2026 01:57:44] "GET /assets/icons/icon-512.svg HTTP/1.1" 200 -
