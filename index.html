@@ -7,63 +7,13 @@
     <link rel="stylesheet" href="assets/css/calendar.css">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#5b2c6f">
-    <style>
-        /* Estilos para o Interruptor de Sincronização */
-        .sync-wrapper {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: rgba(255, 255, 255, 0.1);
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-        }
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 34px;
-            height: 20px;
-        }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-color: #ccc;
-            transition: .4s;
-            border-radius: 34px;
-        }
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 14px; width: 14px;
-            left: 3px; bottom: 3px;
-            background-color: white;
-            transition: .4s;
-            border-radius: 50%;
-        }
-        input:checked + .slider { background-color: #2ecc71; }
-        input:checked + .slider:before { transform: translateX(14px); }
-
-        /* Classe de destaque para os dias selecionados */
-        .highlight-dist {
-            background-color: rgba(48, 163, 220, 0.2) !important;
-            border: 2px dashed #30A3DC !important;
-        }
-    </style>
 </head>
 <body>
     <header>
         <h1>Gerenciador de Tarefas</h1>
         <div class="header-controls">
-            <div class="sync-wrapper">
-                <span>Nuvem</span>
-                <label class="switch">
-                    <input type="checkbox" id="syncToggle">
-                    <span class="slider"></span>
-                </label>
-            </div>
             <button id="themeToggle" class="theme-toggle" aria-label="Alternar Tema">🌙</button>
+            <button id="configCloudBtn" class="theme-toggle" style="font-size: 1rem; border-radius: 20px; padding: 0.5rem 1rem; width: auto;" aria-label="Configurar Nuvem">☁️ Configurar Nuvem</button>
             <a href="index.html">Voltar para Home</a>
         </div>
     </header>
@@ -114,22 +64,28 @@
                 <div class="calendar-header">
                     <h3>Calendário</h3>
                 </div>
-                <div id="calendarGrid" class="calendar-grid"></div>
+                <div id="calendarGrid" class="calendar-grid">
+                    <!-- Javascript will populate this -->
+                </div>
 
                 <div class="legend">
                     <h4>Legenda</h4>
-                    <div id="legendContainer" class="legend-items"></div>
+                    <div id="legendContainer" class="legend-items">
+                        <!-- Javascript will populate this -->
+                    </div>
                 </div>
             </section>
         </div>
     </main>
 
+    <!-- Edit Modal -->
     <div id="editModal" class="modal">
         <div class="modal-content">
             <span class="close-modal">&times;</span>
             <h2>Editar Atribuição</h2>
             <input type="hidden" id="editDateKey">
             <input type="hidden" id="editIndex">
+
             <div class="input-group">
                 <label>Nome da Tarefa</label>
                 <input type="text" id="editTaskTitle">
@@ -142,11 +98,45 @@
                 <label>Cor</label>
                 <input type="color" id="editColor">
             </div>
+
             <button id="saveEditBtn" class="btn-primary">Salvar Alterações</button>
+        </div>
+    </div>
+
+    <!-- Connection Modal -->
+    <div id="connectionModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" id="closeConnectionModal">&times;</span>
+            <h2>Configurar Nuvem (Supabase)</h2>
+            <p>Insira as credenciais do seu projeto Supabase para ativar a sincronização.</p>
+
+            <div class="input-group">
+                <label>Supabase URL</label>
+                <input type="text" id="supabaseUrl" placeholder="https://xyz.supabase.co">
+            </div>
+            <div class="input-group">
+                <label>Supabase Anon Key</label>
+                <input type="text" id="supabaseKey" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+            </div>
+
+            <button id="saveConnectionBtn" class="btn-primary">Salvar e Conectar</button>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="assets/js/calendar.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(registration => {
+                        console.log('SW registered:', registration);
+                    })
+                    .catch(error => {
+                        console.log('SW registration failed:', error);
+                    });
+            });
+        }
+    </script>
 </body>
 </html>
