@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     // === CONFIGURAÇÃO SUPABASE (INSIRA SEUS DADOS AQUI) ===
     const SUPABASE_URL = 'https://iobpyyzaechoxawhcesz.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_QrtY2qU7e3AFvKigYdXLtg_oKeJsyD9';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvYnB5eXphZWNob3hhd2hjZXN6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzNDE4MjksImV4cCI6MjA4NTkxNzgyOX0.GuWWYKvEHChowEGa9-iDA6D3Pc8a1R-jCEfm4q_cKVg';
     // =====================================================
 
     let currentDate = new Date();
